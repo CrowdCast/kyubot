@@ -54,6 +54,7 @@ end
 # Team class
 class Team < ApplicationRecord
   has_many :users
+  has_many :requests, :through => :users
 
   after_create :create_or_update_users
   after_create :start_bot
@@ -102,5 +103,42 @@ class SlackWebService
 
   def get_users
     @client.users_list.members
+  end
+end
+
+# User model
+class User < ApplicationRecord
+  belongs_to :team
+  has_many :requests
+
+  def days_remaining
+    allowance - days_taken
+  end
+end
+
+# Request model
+class Request < ApplicationRecord
+  belongs_to :user
+
+  enum status: [:pending, :approved, :rejected, :canceled]
+
+  def start_date
+    days.sort.first
+  end
+
+  def end_date
+    days.sort.last
+  end
+
+  def duration
+    days.length
+  end
+
+  def add_date(date)
+    self.update({ days: days.push(date) }) unless days.include?(date)
+  end
+
+  def remove_date(date)
+    self.update({ days: days - [date] })
   end
 end
