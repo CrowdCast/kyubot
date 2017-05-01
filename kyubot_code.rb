@@ -128,6 +128,10 @@ class User < ApplicationRecord
   def days_remaining
     allowance - days_taken
   end
+
+  def all_days_requested
+    requests.map{|request| request.days}.flatten
+  end
 end
 
 # Request model
