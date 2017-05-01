@@ -59,6 +59,20 @@ class Team < ApplicationRecord
   after_create :create_or_update_users
   after_create :start_bot
 
+  def self.create_or_update_team(auth_hash)
+    # TO DO: should return some error
+    return unless auth_hash.info.is_owner
+    team = self.find_by(slack_id: auth_hash.info.team_id)
+    if team
+      team.update({ token: auth_hash.credentials.token })
+    else
+      Team.create({
+        slack_id: auth_hash.info.team_id,
+        token: auth_hash.credentials.token,
+      })
+    end
+  end
+
   def create_or_update_users
     users_hash = service_client.get_users
     users_hash.each { |user_hash|
