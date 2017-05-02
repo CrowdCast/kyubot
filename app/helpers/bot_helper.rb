@@ -57,7 +57,8 @@ module BotHelper
 
   def get_description(expression)
     # Regex to get description text from a days off requesst
-    non_description = expression.match(/(.*\sfor\s)/)[1]
+    return nil unless expression.match(/(.*\s+for\s)/)
+    non_description = expression.match(/(.*\s+for\s)/)[1]
     expression.gsub(non_description, '')
   end
 
@@ -70,6 +71,12 @@ module BotHelper
   def build_request_list_for_user(user)
     if user.requests.any?
       # TO DO: Build a message with all the user requests
+      response_string = ""
+      response_string << "<@#{user.slack_id}>\n"
+      user.requests.each do |request|
+        response_string << "#{request.start_date()} => #{request.end_date()}\n"
+      end
+      return response_string
     else
       return "<@#{user.slack_id}> has no requests"
     end

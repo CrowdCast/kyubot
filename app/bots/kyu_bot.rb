@@ -65,7 +65,7 @@ class KyuBot < SlackRubyBot::Bot
   # TO DO: make this more DRY
   command 'list' do |client, data, match|
     command_user = BotHelper.get_user(data.user)
-    
+
     if match['expression'].nil?
       list_string = BotHelper.build_request_list_for_user(command_user)
       return client.say(channel: data.channel, text: list_string)
@@ -74,7 +74,7 @@ class KyuBot < SlackRubyBot::Bot
     return client.say(channel: data.channel, text: 'Sorry you are not an approver.') unless command_user.is_approver
 
     set_user = User.find_by(slack_id: get_first_mention(match['expression']))
-    
+
     if set_user
       list_string = BotHelper.build_request_list_for_user(set_user)
       return client.say(channel: data.channel, text: list_string)
