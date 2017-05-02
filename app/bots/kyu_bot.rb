@@ -6,7 +6,102 @@ class KyuBot < SlackRubyBot::Bot
     command 'request' do
       desc 'Request one or multiple days off'
     end
+
+    command 'cancel' do
+      desc 'Cancel one or multiple days off'
+    end
+
+    command 'list' do
+      desc 'List yourself. If you are an owner you can list a particular user or list all'
+    end
+
+    command 'set' do
+      desc 'Set leave allowance for a user'
+    end
   end
+
+  command 'request' do |client, data, match|
+    command_user = get_user(data.user)
+    request_dates = get_dates(match['expression'])
+
+    unless (command_user.all_days_requested & request_dates).empty?
+      client.say(channel: data.channel, text: 'Sorry you have already requested 1 or more of those dates')
+    end
+
+    request = Request.create({
+      user: command_user,
+      days: request_dates,
+      description: get_description(match['expression']),
+    })
+    request.send_to_approver
+
+    client.say(channel: data.channel, text: 'Thanks! Your request has been made')
+  end
+
+  command 'cancel' do |client, data, match|
+    command_user = get_user(data.user)
+    cancel_dates = get_dates(match['expression'])
+    canceled_dates = []
+
+    client.say(channel: data.channel, text: "Sorry I don't understand.") unless cancel_dates
+
+    # TO DO: much more efficient way of handling this because this current code makes me sad
+    cancel_dates.each{|date|
+      command_user.requests.each{|request|
+        if request.days.include?(date)
+          request.remove_date(date)
+          canceled_dates.push(date)
+        end
+      }
+    }
+
+    if canceled_dates.empty?
+      client.say(channel: data.channel, text: "No dates need to be canceled.")
+    else
+      client.say(channel: data.channel, text: "Canceled your requests.")
+    end
+  end
+
+  # TO DO: make this more DRY
+  command 'list' do |client, data, match|
+    command_user = get_user(data.user)
+    
+    if match['expression'].nil?
+      list_string = build_request_list_for_user(command_user)
+      return client.say(channel: data.channel, text: list_string)
+    end
+
+    return client.say(channel: data.channel, text: 'Sorry you are not an approver.') unless command_user.is_approver
+
+    set_user = User.find_by(slack_id: get_first_mention(match['expression']))
+    
+    if set_user
+      list_string = build_request_list_for_user(set_user)
+      return client.say(channel: data.channel, text: list_string)
+    elsif match['expression'] === 'all'
+      list_string = build_request_list_for_team(command_user.team)
+      return client.say(channel: data.channel, text: list_string)
+    end
+
+    return client.say(channel: data.channel, text: "Sorry I don't understand.")
+
+  end
+
+  command 'set' do |client, data, match|
+    command_user = get_user(data.user)
+    return client.say(channel: data.channel, text: 'Sorry you are not an approver.') unless command_user.is_approver
+
+    set_user = User.find_by(slack_id: get_first_mention(match['expression']))
+    days = get_days(match['expression'])
+    if set_user && days
+      set_user.update({ allowance: days })
+      client.say(channel: data.channel, text: "<@#{set_user.slack_id}> now has #{days} days allowance")
+    else
+      client.say(channel: data.channel, text: "Sorry I don't understand.")
+    end
+  end
+
+  # TO DO: Remove these test commands below
 
   command 'say' do |client, data, match|
     client.say(channel: data.channel, text: match['expression'])
