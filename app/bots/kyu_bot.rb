@@ -73,7 +73,7 @@ class KyuBot < SlackRubyBot::Bot
 
     return client.say(channel: data.channel, text: 'Sorry you are not an approver.') unless command_user.is_approver
 
-    set_user = User.find_by(slack_id: get_first_mention(match['expression']))
+    set_user = User.find_by(slack_id: BotHelper.get_first_mention(match['expression']))
 
     if set_user
       list_string = BotHelper.build_request_list_for_user(set_user)
@@ -109,6 +109,10 @@ class KyuBot < SlackRubyBot::Bot
 
   command 'ping' do |client, data, match|
     client.say(text: 'pong', channel: data.channel)
+  end
+
+  command 'who is jeremy?' do |client, data, match|
+    client.say(text: ':fake: :fake:', channel: data.channel)
   end
 
   command 'ask' do |client, data, match|
