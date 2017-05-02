@@ -16,15 +16,78 @@ class KyuBot < SlackRubyBot::Bot
     client.say(text: 'pong', channel: data.channel)
   end
 
+  command 'request' do |client, data, match|
+    # Request.new(client.name)
+  end
+
+  command 'cancel' do |client, data, match|
+  end
+
+  command 'input' do |client, data, match|
+  end
+
   command 'list' do |client, data, match|
+    puts '--------------------'
+    puts data.inspect
+    puts match['expression'].delete("<@>")
+    puts '--------------------'
+
     if match['expression']
-      user = User.where(slack_name: match['expression'])
+      requestedUser = getUserId(match['expression'])
+      requestingUser = getUserId(data.user)
+
       client.say(text: user.allowance)
       client.say(text: 'theres nothing to list', channel: data.channel)
     else
-      user = User.all()
+      team = Team.find(team_id: data.teamId)
+      users = team.users
+
+      users.each { |user| client.say(text: 'username') }
+
       client.say(text: 'listen to my hearttt', channel: data.channel)
     end
   end
 
+  def getUserId(user)
+    userId = match['expression'].delete("<@>")
+    return User.where(slack_id: userId)
+  end
+
+  def parseDate(string)
+    # set strings to be lowercase
+    string.downcase
+
+    dateArray = []
+
+    # from <YYYY/MM/DD>
+    if string.match(/^from\s+((\d\d\d\d\/)?\d?\d\/\d?\d)/)
+      fromDate = Date.parse(string.match(/^from\s+((\d\d\d\d\/)?\d?\d\/\d?\d)/)[1])
+    end
+
+    # today
+    if string.match(/today/)
+      fromDate = Date.today
+    end
+
+    # to <YYYY/MM/DD>
+    if string.match(/to\s+((\d\d\d\d\/)?\d?\d\/\d?\d)/)
+      toDate = Date.parse(string.match(/to\s+((\d\d\d\d\/)?\d?\d\/\d?\d)/)[1])
+
+      (toDate - fromDate).to_i.times do |x| dateArray << fromDate+x end
+      dateArray << toDate
+      return dateArray
+    end
+
+    # days from
+    if string.match(/(\d)+\s+days/)
+      # since index is zero indexed
+      index = string.match(/(\d)+\s+days/)[1].to_i
+      index.times do |x| dateArray << fromDate+x end
+      return dateArray
+    end
+
+    # Single date entry
+    # Parse date, date format is [YYYY/]?M?M/D?D
+    return [Date.parse(string.match(/((\d\d\d\d\/)?\d?\d\/\d?\d)$/)[1])]
+  end
 end
