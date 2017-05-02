@@ -135,6 +135,12 @@ class KyuBot < SlackRubyBot::Bot
     def build_request_list_for_user(user)
       if user.requests.any?
         # TO DO: Build a message with all the user requests
+        response_string = ""
+        response_string << "<@#{user.slack_id}>\n"
+        user.requests.each do |request|
+          response_string << "#{request.start_date()} => #{request.end_date().ljust(10)}\n"
+        end
+        return response_string
       else
         return "<@#{user.slack_id}> has no requests"
       end
