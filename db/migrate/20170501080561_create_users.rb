@@ -9,6 +9,9 @@ class CreateUsers < ActiveRecord::Migration[5.0]
       # t.boolean :is_deleted
       t.string :slack_id, null: false
       t.timestamps
+
+      t.references :team, index:true
     end
+    add_foreign_key :users, :teams
   end
 end

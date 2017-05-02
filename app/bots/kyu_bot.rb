@@ -27,25 +27,68 @@ class KyuBot < SlackRubyBot::Bot
   end
 
   command 'list' do |client, data, match|
-    puts '--------------------'
-    puts data.inspect
-    puts match['expression'].delete("<@>")
-    puts '--------------------'
-
     if match['expression']
       requestedUser = getUserId(match['expression'])
       requestingUser = getUserId(data.user)
 
-      client.say(text: user.allowance)
-      client.say(text: 'theres nothing to list', channel: data.channel)
+      # client.say(text: user.allowance)
+      # client.say(text: 'theres nothing to list', channel: data.channel)
     else
-      team = Team.find(team_id: data.teamId)
-      users = team.users
+      # team = Team.find(team_id: data.teamId)
 
-      users.each { |user| client.say(text: 'username') }
+      #  users.each { |user| client.say(text: 'username') }
 
       client.say(text: 'listen to my hearttt', channel: data.channel)
     end
+  end
+
+  command 'ask' do |client, data, match|
+    client = Slack::Web::Client.new
+    client.chat_postMessage(
+      channel: data.channel,
+      as_user: true,
+      text: 'Do you like cheese?',
+      attachments: [{
+        "text": "Choose your cheese level",
+        "fallback": "You are unable to eat cheese",
+        "callback_id": "cheese_question",
+        "color": "#3AA3E3",
+        "attachment_type": "default",
+        "actions": [
+          {
+            "name": "cheese",
+            "text": "Yes",
+            "type": "button",
+            "value": "yes"
+          },
+          {
+            "name": "cheese",
+            "text": "No",
+            "type": "button",
+            "value": "no"
+          },
+          {
+            "name": "cheese",
+            "text": "Only stinky ones",
+            "type": "button",
+            "value": "stinky"
+          },
+          {
+            "name": "cheese",
+            "text": "I am French",
+            "style": "danger",
+            "type": "button",
+            "value": "french",
+            "confirm": {
+              "title": "Are you sure?",
+              "text": "Wouldn't you prefer a good American processed cheese?",
+              "ok_text": "Yes",
+              "dismiss_text": "No"
+            }
+          }
+        ]
+      }]
+    )
   end
 
   def getUserId(user)

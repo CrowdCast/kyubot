@@ -1,3 +1,5 @@
 Rails.application.routes.draw do
-  resources :messages, only: :index
+  root 'sessions#new'
+  get '/sessions/new', to: 'sessions#new'
+  get '/sessions/auth', to: 'sessions#auth'
 end
