@@ -160,3 +160,76 @@ class Request < ApplicationRecord
     self.update({ days: days - [date] })
   end
 end
+
+# Kyubot commands
+class KyuBot < SlackRubyBot::Bot
+  help do
+    title 'KyuBot'
+    desc 'This bot manages days off requests.'
+
+    command 'request' do
+      desc 'Request one or multiple days off'
+    end
+
+    command 'cancel' do
+      desc 'Cancel one or multiple days off'
+    end
+
+    command 'list' do
+      desc 'List yourself. If you are an owner you can list a particular user or list all'
+    end
+
+    command 'set' do
+      desc 'Set leave allowance for a user'
+    end
+  end
+
+  command 'request' do |client, data, match|
+  end
+
+  command 'cancel' do |client, data, match|
+  end
+
+  command 'list' do |client, data, match|
+  end
+
+  command 'set' do |client, data, match|
+    command_user = get_user(data.user)
+    return client.say(channel: data.channel, text: 'Sorry you are not an approver.') unless command_user.is_approver
+
+    set_user = User.find_by(slack_id: get_first_mention(match['expression']))
+    days = get_days(match['expression'])
+    if set_user && days
+      set_user.update({ allowance: days })
+      client.say(channel: data.channel, text: "<@#{set_user.slack_id}> now has #{days} days allowance")
+    else
+      client.say(channel: data.channel, text: "Sorry I don't understand.")
+    end
+  end
+
+  command 'say' do |client, data, match|
+    client.say(channel: data.channel, text: match['expression'])
+  end
+
+  command 'ping' do |client, data, match|
+    client.say(text: 'pong', channel: data.channel)
+  end
+
+  private
+    def get_user(slack_id)
+      User.find_by(slack_id: slack_id)
+    end
+
+    def get_team(slack_id)
+      Team.find_by(slack_id: slack_id)
+    end
+
+    def get_first_mention(expression)
+      return string[/<@(.*?)>/m, 1]
+    end
+
+    def get_days(expression)
+      expression[/\d+/]
+    end
+
+end
