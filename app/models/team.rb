@@ -48,8 +48,7 @@ class Team < ApplicationRecord
   end
 
   def start_bot
-    # TO DO: add BotService
-    # BotService.instance.start!(self)
+    BotService.instance.start!(self)
   end
 
   def service_client
