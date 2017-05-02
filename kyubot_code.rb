@@ -159,7 +159,7 @@ class Request < ApplicationRecord
   def remove_date(date)
     self.update({ days: days - [date] })
   end
-  
+
   def send_to_approver
     # TO DO: Call Slack service to message approvers
   end
@@ -233,7 +233,7 @@ class KyuBot < SlackRubyBot::Bot
   # TO DO: make this more DRY
   command 'list' do |client, data, match|
     command_user = get_user(data.user)
-    
+
     if match['expression'].nil?
       list_string = build_request_list_for_user(command_user)
       return client.say(channel: data.channel, text: list_string)
@@ -242,7 +242,7 @@ class KyuBot < SlackRubyBot::Bot
     return client.say(channel: data.channel, text: 'Sorry you are not an approver.') unless command_user.is_approver
 
     set_user = User.find_by(slack_id: get_first_mention(match['expression']))
-    
+
     if set_user
       list_string = build_request_list_for_user(set_user)
       return client.say(channel: data.channel, text: list_string)
@@ -288,18 +288,53 @@ class KyuBot < SlackRubyBot::Bot
 
     def get_dates(expression)
       string = get_expression_without_mentions(expression)
-      dates = []
-      # TO DO: Regex to parse and return array of dates
+      dateArray = []
 
-      dates
+      # set strings to be lowercase
+      string.downcase
+
+      # from <YYYY/MM/DD>
+      if string.match(/^from\s+((\d\d\d\d\/)?\d?\d\/\d?\d)/)
+        fromDate = Date.parse(string.match(/^from\s+((\d\d\d\d\/)?\d?\d\/\d?\d)/)[1])
+      end
+
+      # today
+      if string.match(/today/)
+        fromDate = Date.today
+      end
+
+      # to <YYYY/MM/DD>
+      if string.match(/to\s+((\d\d\d\d\/)?\d?\d\/\d?\d)/)
+        toDate = Date.parse(string.match(/to\s+((\d\d\d\d\/)?\d?\d\/\d?\d)/)[1])
+
+        (toDate - fromDate).to_i.times do |x| dateArray << fromDate+x end
+        dateArray << toDate
+        return dateArray
+      end
+
+      # days from
+      if string.match(/(\d)+\s+days/)
+        # since index is zero indexed
+        index = string.match(/(\d)+\s+days/)[1].to_i
+        index.times do |x| dateArray << fromDate+x end
+        return dateArray
+      end
+
+      # Single date entry
+      # Parse date, date format is [YYYY/]?M?M/D?D
+      [Date.parse(string.match(/((\d\d\d\d\/)?\d?\d\/\d?\d)$/)[1])]
     end
 
     def get_description(expression)
-      # TO DO: Regex to get description text from a days off requesst
+      # Regex to get description text from a days off requesst
+      nonDescription = expression.match(/(.*\sfor\s)/)[1]
+      expression.gsub(nonDescription, '')
     end
 
     def get_expression_without_mentions(expression)
-      # TO DO: Regex to remove out mentions <@FOO> from expression
+      # Regex to remove out mentions <@FOO> from expression
+      user = expression.match(/(<@.*>)/)[1]
+      expression.gsub(user,'')
     end
 
     def build_request_list_for_user(user)

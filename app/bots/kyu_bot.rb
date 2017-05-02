@@ -17,6 +17,7 @@ class KyuBot < SlackRubyBot::Bot
   end
 
   command 'request' do |client, data, match|
+    dateArray = parseDate(match['expression'])
     # Request.new(client.name)
   end
 
