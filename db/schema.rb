@@ -26,10 +26,11 @@ ActiveRecord::Schema.define(version: 20170501080581) do
   end
 
   create_table "teams", force: :cascade do |t|
-    t.string   "slack_id",    null: false
-    t.string   "slack_token", null: false
-    t.datetime "created_at",  null: false
-    t.datetime "updated_at",  null: false
+    t.string   "slack_id",         null: false
+    t.string   "access_token",     null: false
+    t.string   "bot_access_token", null: false
+    t.datetime "created_at",       null: false
+    t.datetime "updated_at",       null: false
   end
 
   create_table "users", force: :cascade do |t|

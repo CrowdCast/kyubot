@@ -14,9 +14,7 @@ class SessionsController < ApplicationController
         }
       )
 
-      team = Team.find_or_initialize_by(slack_id: response['team_id'])
-      team.slack_token = response['bot']['bot_access_token']
-      team.save
+      Team.create_or_update_team(response)
 
       render plain: "Auth succeeded."
     rescue Slack::Web::Api::Error => e
