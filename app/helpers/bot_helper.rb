@@ -52,7 +52,11 @@ module BotHelper
 
     # Single date entry
     # Parse date, date format is [YYYY/]?M?M/D?D
-    return [Date.parse(string.match(/((\d\d\d\d\/)?\d?\d\/\d?\d)$/)[1])]
+    if (string.match(/((\d\d\d\d\/)?\d?\d\/\d?\d)/))
+      return [Date.parse(string.match(/((\d\d\d\d\/)?\d?\d\/\d?\d)/)[1])]
+    end
+
+    return 'Sorry I could not find a date.'
   end
 
   def get_description(expression)
