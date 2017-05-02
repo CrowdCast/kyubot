@@ -159,6 +159,10 @@ class Request < ApplicationRecord
   def remove_date(date)
     self.update({ days: days - [date] })
   end
+  
+  def send_to_approver
+    # Call Slack service to message approvers
+  end
 end
 
 # Kyubot commands
@@ -185,6 +189,21 @@ class KyuBot < SlackRubyBot::Bot
   end
 
   command 'request' do |client, data, match|
+    command_user = get_user(data.user)
+    request_dates = get_dates(match['expression'])
+
+    unless (command_user.all_days_requested & request_dates).empty?
+      client.say(channel: data.channel, text: 'Sorry you have already requested 1 or more of those dates')
+    end
+
+    request = Request.create({
+      user: command_user,
+      days: request_dates,
+      description: get_description(match['expression']),
+    })
+    request.send_to_approver
+
+    client.say(channel: data.channel, text: 'Thanks! Your request has been made')
   end
 
   command 'cancel' do |client, data, match|
@@ -229,7 +248,23 @@ class KyuBot < SlackRubyBot::Bot
     end
 
     def get_days(expression)
-      expression[/\d+/]
+      get_expression_without_mentions(expression)[/\d+/]
+    end
+
+    def get_dates(expression)
+      string = get_expression_without_mentions(expression)
+      dates = []
+      # Regex to parse and return array of dates
+
+      dates
+    end
+
+    def get_description(expression)
+      # Regex to get description text from a days off requesst
+    end
+
+    def get_expression_without_mentions(expression)
+      # Regex to remove out mentions <@FOO> from expression
     end
 
 end
