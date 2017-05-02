@@ -161,7 +161,7 @@ class Request < ApplicationRecord
   end
   
   def send_to_approver
-    # Call Slack service to message approvers
+    # TO DO: Call Slack service to message approvers
   end
 end
 
@@ -207,9 +207,52 @@ class KyuBot < SlackRubyBot::Bot
   end
 
   command 'cancel' do |client, data, match|
+    command_user = get_user(data.user)
+    cancel_dates = get_dates(match['expression'])
+    canceled_dates = []
+
+    client.say(channel: data.channel, text: "Sorry I don't understand.") unless cancel_dates
+
+    # TO DO: much more efficient way of handling this because this current code makes me sad
+    cancel_dates.each{|date|
+      command_user.requests.each{|request|
+        if request.days.include?(date)
+          request.remove_date(date)
+          canceled_dates.push(date)
+        end
+      }
+    }
+
+    if canceled_dates.empty?
+      client.say(channel: data.channel, text: "No dates need to be canceled.")
+    else
+      client.say(channel: data.channel, text: "Canceled your requests.")
+    end
   end
 
+  # TO DO: make this more DRY
   command 'list' do |client, data, match|
+    command_user = get_user(data.user)
+    
+    if match['expression'].nil?
+      list_string = build_request_list_for_user(command_user)
+      return client.say(channel: data.channel, text: list_string)
+    end
+
+    return client.say(channel: data.channel, text: 'Sorry you are not an approver.') unless command_user.is_approver
+
+    set_user = User.find_by(slack_id: get_first_mention(match['expression']))
+    
+    if set_user
+      list_string = build_request_list_for_user(set_user)
+      return client.say(channel: data.channel, text: list_string)
+    elsif match['expression'] === 'all'
+      list_string = build_request_list_for_team(command_user.team)
+      return client.say(channel: data.channel, text: list_string)
+    end
+
+    return client.say(channel: data.channel, text: "Sorry I don't understand.")
+
   end
 
   command 'set' do |client, data, match|
@@ -224,14 +267,6 @@ class KyuBot < SlackRubyBot::Bot
     else
       client.say(channel: data.channel, text: "Sorry I don't understand.")
     end
-  end
-
-  command 'say' do |client, data, match|
-    client.say(channel: data.channel, text: match['expression'])
-  end
-
-  command 'ping' do |client, data, match|
-    client.say(text: 'pong', channel: data.channel)
   end
 
   private
@@ -254,17 +289,33 @@ class KyuBot < SlackRubyBot::Bot
     def get_dates(expression)
       string = get_expression_without_mentions(expression)
       dates = []
-      # Regex to parse and return array of dates
+      # TO DO: Regex to parse and return array of dates
 
       dates
     end
 
     def get_description(expression)
-      # Regex to get description text from a days off requesst
+      # TO DO: Regex to get description text from a days off requesst
     end
 
     def get_expression_without_mentions(expression)
-      # Regex to remove out mentions <@FOO> from expression
+      # TO DO: Regex to remove out mentions <@FOO> from expression
+    end
+
+    def build_request_list_for_user(user)
+      if user.requests.any?
+        # TO DO: Build a message with all the user requests
+      else
+        return "<@#{user.slack_id}> has no requests"
+      end
+    end
+
+    def build_request_list_for_team(team)
+      list_string = ""
+      team.users.each {|user|
+        list_string << "\n#{build_request_list_for_user(user)}"
+      }
+      return list_string
     end
 
 end
