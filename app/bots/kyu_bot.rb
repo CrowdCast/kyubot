@@ -111,6 +111,10 @@ class KyuBot < SlackRubyBot::Bot
     client.say(text: 'pong', channel: data.channel)
   end
 
+  command 'who is jeremy?' do |client, data, match|
+    client.say(text: ':fake: :fake:', channel: data.channel)
+  end
+
   command 'ask' do |client, data, match|
     client = Slack::Web::Client.new
     client.chat_postMessage(

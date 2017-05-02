@@ -78,7 +78,13 @@ module BotHelper
       response_string = ""
       response_string << "<@#{user.slack_id}>\n"
       user.requests.each do |request|
-        response_string << "#{request.start_date()} => #{request.end_date()}\n"
+        if request.duration > 1
+          response_string << "#{request.start_date()} => #{request.end_date()} \t  (#{request.status})\n"
+          # response_string.ljust(5) + "#{request.status}\n"
+        else
+          response_string << "#{request.start_date()} \t\t\t\t\t\t\t\t (#{request.status})\n"
+          # response_string.ljust(15) + "#{request.status}\n"
+        end
       end
       return response_string
     else
