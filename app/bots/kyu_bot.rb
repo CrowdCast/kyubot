@@ -21,8 +21,8 @@ class KyuBot < SlackRubyBot::Bot
   end
 
   command 'request' do |client, data, match|
-    command_user = get_user(data.user)
-    request_dates = get_dates(match['expression'])
+    command_user = BotHelper.get_user(data.user)
+    request_dates = BotHelper.get_dates(match['expression'])
 
     unless (command_user.all_days_requested & request_dates).empty?
       client.say(channel: data.channel, text: 'Sorry you have already requested 1 or more of those dates')
@@ -31,7 +31,7 @@ class KyuBot < SlackRubyBot::Bot
     request = Request.create({
       user: command_user,
       days: request_dates,
-      description: get_description(match['expression']),
+      description: BotHelper.get_description(match['expression']),
     })
     request.send_to_approver
 
@@ -39,8 +39,8 @@ class KyuBot < SlackRubyBot::Bot
   end
 
   command 'cancel' do |client, data, match|
-    command_user = get_user(data.user)
-    cancel_dates = get_dates(match['expression'])
+    command_user = BotHelper.get_user(data.user)
+    cancel_dates = BotHelper.get_dates(match['expression'])
     canceled_dates = []
 
     client.say(channel: data.channel, text: "Sorry I don't understand.") unless cancel_dates
@@ -64,10 +64,10 @@ class KyuBot < SlackRubyBot::Bot
 
   # TO DO: make this more DRY
   command 'list' do |client, data, match|
-    command_user = get_user(data.user)
+    command_user = BotHelper.get_user(data.user)
     
     if match['expression'].nil?
-      list_string = build_request_list_for_user(command_user)
+      list_string = BotHelper.build_request_list_for_user(command_user)
       return client.say(channel: data.channel, text: list_string)
     end
 
@@ -76,10 +76,10 @@ class KyuBot < SlackRubyBot::Bot
     set_user = User.find_by(slack_id: get_first_mention(match['expression']))
     
     if set_user
-      list_string = build_request_list_for_user(set_user)
+      list_string = BotHelper.build_request_list_for_user(set_user)
       return client.say(channel: data.channel, text: list_string)
     elsif match['expression'] === 'all'
-      list_string = build_request_list_for_team(command_user.team)
+      list_string = BotHelper.build_request_list_for_team(command_user.team)
       return client.say(channel: data.channel, text: list_string)
     end
 
@@ -88,11 +88,11 @@ class KyuBot < SlackRubyBot::Bot
   end
 
   command 'set' do |client, data, match|
-    command_user = get_user(data.user)
+    command_user = BotHelper.get_user(data.user)
     return client.say(channel: data.channel, text: 'Sorry you are not an approver.') unless command_user.is_approver
 
-    set_user = User.find_by(slack_id: get_first_mention(match['expression']))
-    days = get_days(match['expression'])
+    set_user = User.find_by(slack_id: BotHelper.get_first_mention(match['expression']))
+    days = BotHelper.get_days(match['expression'])
     if set_user && days
       set_user.update({ allowance: days })
       client.say(channel: data.channel, text: "<@#{set_user.slack_id}> now has #{days} days allowance")
@@ -159,87 +159,4 @@ class KyuBot < SlackRubyBot::Bot
       }]
     )
   end
-
-  private
-    def get_user(slack_id)
-      User.find_by(slack_id: slack_id)
-    end
-
-    def get_team(slack_id)
-      Team.find_by(slack_id: slack_id)
-    end
-
-    def get_first_mention(expression)
-      return string[/<@(.*?)>/m, 1]
-    end
-
-    def get_days(expression)
-      get_expression_without_mentions(expression)[/\d+/]
-    end
-
-    def get_dates(expression)
-      # set strings to be lowercase
-      string = expression.downcase
-
-      dates = []
-
-      # from <YYYY/MM/DD>
-      if string.match(/from\s+((\d\d\d\d\/)?\d?\d\/\d?\d)/)
-        date_from = Date.parse(string.match(/from\s+((\d\d\d\d\/)?\d?\d\/\d?\d)/)[1])
-      end
-
-      # today
-      if string.match(/today/)
-        date_from = Date.today
-      end
-
-      # to <YYYY/MM/DD>
-      if string.match(/to\s+((\d\d\d\d\/)?\d?\d\/\d?\d)/)
-        date_to = Date.parse(string.match(/to\s+((\d\d\d\d\/)?\d?\d\/\d?\d)/)[1])
-
-        (date_to - date_from).to_i.times do |x| dates << date_from+x end
-        dates << date_to
-        return dates
-      end
-
-      # days from
-      if string.match(/(\d)+\s+days/)
-        # since index is zero indexed
-        index = string.match(/(\d)+\s+days/)[1].to_i
-        index.times do |x| dates << date_from+x end
-        return dates
-      end
-
-      # Single date entry
-      # Parse date, date format is [YYYY/]?M?M/D?D
-      return [Date.parse(string.match(/((\d\d\d\d\/)?\d?\d\/\d?\d)$/)[1])]
-    end
-
-    def get_description(expression)
-      # Regex to get description text from a days off requesst
-      non_description = expression.match(/(.*\sfor\s)/)[1]
-      expression.gsub(non_description, '')
-    end
-
-    def get_expression_without_mentions(expression)
-      # Regex to remove out mentions <@FOO> from expression
-      user = expression.match(/(<@.*>)/)[1]
-      expression.gsub(user,'')
-    end
-
-    def build_request_list_for_user(user)
-      if user.requests.any?
-        # TO DO: Build a message with all the user requests
-      else
-        return "<@#{user.slack_id}> has no requests"
-      end
-    end
-
-    def build_request_list_for_team(team)
-      list_string = ""
-      team.users.each {|user|
-        list_string << "\n#{build_request_list_for_user(user)}"
-      }
-      return list_string
-    end
 end
