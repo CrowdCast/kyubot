@@ -21,6 +21,7 @@ class Request < ApplicationRecord
 
   def remove_date(date)
     self.update({ days: days - [date] })
+    self.destroy if self.days.empty?
   end
   
   def send_to_approver
