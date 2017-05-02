@@ -21,6 +21,10 @@ class Team < ApplicationRecord
     end
   end
 
+  def approvers
+    users.where(is_approver: true)
+  end
+
   def create_or_update_users
     users_hash = service_client.get_users
     users_hash.each { |user_hash|
